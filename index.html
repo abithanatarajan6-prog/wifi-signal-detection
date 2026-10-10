@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WiFi Signal Detection</title>
+<style>
+:root{--blue:#1d4ed8;--navy:#0f172a;--pale:#eff6ff;--line:#dbeafe;--muted:#64748b}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:var(--navy);background:#f8fafc}
+header{background:linear-gradient(120deg,#1d4ed8,#0e7490);color:white;padding:24px max(5%,calc((100% - 1100px)/2))}
+header h1{margin:0 0 8px;font-size:28px}header p{margin:0;opacity:.95}
+nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px max(5%,calc((100% - 1100px)/2));background:white;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+nav button{border:0;border-radius:10px;padding:10px 14px;background:#eaf2ff;color:#1e40af;font-weight:700;cursor:pointer}
+nav button.active,nav button:hover{background:var(--blue);color:white}
+main{max-width:1100px;margin:24px auto;padding:0 18px}.page{display:none}.page.active{display:block}
+.hero{padding:28px;border-radius:18px;background:linear-gradient(120deg,#dbeafe,#ecfeff);border:1px solid var(--line)}
+.hero h2{font-size:28px;margin-top:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:18px}
+.card{background:white;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 5px 18px #0f172a08}
+.card h3{margin-top:0}.stat{font-size:30px;font-weight:800;color:var(--blue);margin:8px 0}
+label{display:block;font-weight:700;margin:13px 0 6px}input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;font:inherit;background:white}
+textarea{min-height:85px} .btn{border:0;background:var(--blue);color:white;border-radius:9px;padding:11px 16px;font-weight:700;cursor:pointer;margin-top:14px}.btn.secondary{background:#0f766e}
+.meter{height:16px;border-radius:20px;background:#e2e8f0;overflow:hidden;margin:12px 0}.meter span{display:block;height:100%;width:0;background:#16a34a;transition:width .2s}
+.notice{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:13px;margin-top:14px;color:#9a3412}
+.good{color:#15803d;font-weight:700}.weak{color:#b91c1c;font-weight:700}.medium{color:#b45309;font-weight:700}
+table{border-collapse:collapse;width:100%;background:white;margin-top:12px}th,td{padding:11px;border:1px solid var(--line);text-align:left}th{background:#eff6ff}
+.mapbox{border:1px dashed #60a5fa;background:#eff6ff;padding:22px;border-radius:12px;margin-top:14px}
+.small{color:var(--muted);font-size:13px;line-height:1.5}#toast{position:fixed;bottom:20px;right:20px;background:#0f172a;color:white;padding:14px 18px;border-radius:10px;display:none;max-width:320px;box-shadow:0 8px 30px #0002}
+footer{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+@media(max-width:600px){header h1{font-size:23px}.hero h2{font-size:23px}nav{position:static}}
+</style>
+</head>
+<body>
+<header><h1>📶 WiFi Signal Detection</h1><p>Prototype for identifying and reporting areas with weak WiFi connectivity</p></header>
+<nav>
+<button class="active" data-page="home">Home</button><button data-page="detect">Detect Signal</button><button data-page="report">Report an Area</button><button data-page="dashboard">Dashboard</button>
+</nav>
+<main>
+<section id="home" class="page active">
+<div class="hero"><h2>Find weak-signal areas more easily</h2><p>This prototype demonstrates how users can record signal readings, flag weak connectivity, and review reported areas from one dashboard.</p><button class="btn" onclick="showPage('detect')">Check a demo signal</button></div>
+<div class="grid">
+<div class="card"><h3>📶 Signal check</h3><p>View a sample signal-strength result with a percentage and simple explanation.</p></div>
+<div class="card"><h3>📍 Area reporting</h3><p>Record an area where WiFi connectivity seems weak.</p></div>
+<div class="card"><h3>🔔 Alerts</h3><p>See an on-screen warning when a report is marked weak.</p></div>
+<div class="card"><h3>📊 Dashboard</h3><p>Review sample report totals and recent entries.</p></div>
+</div>
+<div class="notice"><strong>Prototype limitation:</strong> Signal values on this website are demo inputs. The site does not scan nearby WiFi networks or measure live signal strength.</div>
+</section>
+<section id="detect" class="page">
+<div class="card"><h2>Demo Signal Check</h2><p>Choose a sample level to see how the result is displayed.</p>
+<label for="wifiName">WiFi / Area name</label><input id="wifiName" placeholder="e.g., Library - Back Corner">
+<label for="level">Demo signal level</label><select id="level"><option value="90">Excellent — 90%</option><option value="75">Good — 75%</option><option value="45">Medium — 45%</option><option value="20">Weak — 20%</option></select>
+<button class="btn" onclick="checkSignal()">Show result</button>
+<div id="signalResult" class="card" style="margin-top:16px;display:none"><h3 id="resultTitle">Signal result</h3><div class="stat" id="percent">90%</div><div class="meter"><span id="meterFill"></span></div><p id="resultText"></p></div>
+<p class="small">For real detection, connect a supported device/app or backend that reads actual WiFi RSSI values. This demo selector is not a live measurement.</p>
+</div>
+</section>
+<section id="report" class="page">
+<div class="card"><h2>Report a WiFi Area</h2><p>Use a real observation from a test location. Avoid including private network passwords.</p>
+<form id="reportForm">
+<label for="reportWifi">WiFi / area name *</label><input id="reportWifi" required placeholder="e.g., Classroom 204">
+<label for="location">Location *</label><input id="location" required placeholder="e.g., College library, rear section">
+<label for="reportLevel">Observed signal level *</label><select id="reportLevel" required><option value="">Select level</option><option>Excellent</option><option>Good</option><option>Medium</option><option>Weak</option></select>
+<label for="notes">Notes (optional)</label><textarea id="notes" placeholder="Describe the connectivity issue or test conditions"></textarea>
+<button class="btn" type="submit">Submit report</button>
+</form></div>
+<div class="mapbox"><h3>📍 Location helper</h3><p>Enter a location above, then open a map search. This opens a general map search; it does not automatically detect signal coverage.</p><button class="btn secondary" onclick="openMap()">Open location in Google Maps</button></div>
+</section>
+<section id="dashboard" class="page">
+<h2>Project Dashboard</h2><p class="small">Sample starting figures are labelled as demo data. Submitted reports in this browser are added to the table.</p>
+<div class="grid">
+<div class="card"><h3>Total reports</h3><div class="stat" id="total">5</div></div>
+<div class="card"><h3>Weak areas</h3><div class="stat" id="weakCount">2</div></div>
+<div class="card"><h3>Good / excellent</h3><div class="stat" id="goodCount">3</div></div>
+<div class="card"><h3>Latest alert</h3><p id="latestAlert">Demo dashboard loaded</p></div>
+</div>
+<div class="card" style="margin-top:18px"><h3>Recent reports</h3><table><thead><tr><th>Area</th><th>Signal</th><th>Notes / status</th></tr></thead><tbody id="reportRows">
+<tr><td>Library - Back Corner</td><td class="weak">Weak</td><td>Demo entry</td></tr><tr><td>Lab Block</td><td class="medium">Medium</td><td>Demo entry</td></tr><tr><td>Classroom 101</td><td class="good">Good</td><td>Demo entry</td></tr>
+</tbody></table></div>
+<div class="notice">Dashboard figures are illustrative sample data until real reports are collected. Data submitted here is stored only in this page session and is not sent to a server.</div>
+</section>
+</main>
+<footer>WiFi Signal Detection • Student prototype • Replace demo data with verified measurements before final evaluation.</footer>
+<div id="toast"></div>
+<script>
+const buttons=[...document.querySelectorAll('nav button')];
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));buttons.forEach(b=>b.classList.toggle('active',b.dataset.page===id));window.scrollTo({top:0,behavior:'smooth'});}
+buttons.forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',3200);}
+function checkSignal(){
+ const name=document.getElementById('wifiName').value.trim()||'Selected area';
+ const val=Number(document.getElementById('level').value);
+ const level=val>=85?'Excellent':val>=65?'Good':val>=35?'Medium':'Weak';
+ document.getElementById('signalResult').style.display='block';
+ document.getElementById('resultTitle').textContent=name+' — '+level+' signal';
+ document.getElementById('percent').textContent=val+'%';
+ document.getElementById('meterFill').style.width=val+'%';
+ document.getElementById('meterFill').style.background=val<35?'#dc2626':val<65?'#d97706':'#16a34a';
+ document.getElementById('resultText').textContent=val<35?'Weak demo result: investigate connectivity at this location.':val<65?'Medium demo result: signal may vary by position.':val<85?'Good demo result: connectivity appears acceptable in this sample.':'Excellent demo result: strong sample level.';
+}
+function openMap(){const loc=document.getElementById('location').value.trim();if(!loc){toast('Enter a location first.');return;}window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(loc),'_blank','noopener');}
+let total=5, weak=2, good=3;
+document.getElementById('reportForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const area=document.getElementById('reportWifi').value.trim();
+ const loc=document.getElementById('location').value.trim();
+ const level=document.getElementById('reportLevel').value;
+ const notes=document.getElementById('notes').value.trim()||('Location: '+loc);
+ const row=document.createElement('tr');
+ const cls=level==='Weak'?'weak':(level==='Medium'?'medium':'good');
+ row.innerHTML='<td></td><td></td><td></td>';
+ row.children[0].textContent=area+' ('+loc+')';row.children[1].textContent=level;row.children[1].className=cls;row.children[2].textContent=notes;
+ document.getElementById('reportRows').prepend(row);total++;
+ if(level==='Weak'){weak++;document.getElementById('latestAlert').textContent='Weak signal reported at '+area;toast('⚠️ Weak signal alert recorded for '+area+'.');}
+ else if(level==='Good'||level==='Excellent'){good++;toast('Report added to dashboard.');}
+ else toast('Medium signal report added.');
+ document.getElementById('total').textContent=total;document.getElementById('weakCount').textContent=weak;document.getElementById('goodCount').textContent=good;
+ e.target.reset();showPage('dashboard');
+});
+</script>
+</body></html>
